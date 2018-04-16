@@ -18,16 +18,19 @@ if (is_readable('config.php')) {
 // No more user editable settings past this point!!!
 /////////////////////////////////////////////////////////////////////////////////
 
+if ($ec->is_ajax_request()) {
+	handle_ajax();
+}
+
 $ec->sanity_check();
 
 $ec->title = "Easy Capture";
-$ec->link = "<link rel=\"stylesheet\" type=\"text/css\" media=\"screen\" href=\"css/style.css\" title=\"Default\" />";
+$ec->link = "<link rel=\"stylesheet\" type=\"text/css\" media=\"screen\" href=\"css/default.css\" title=\"Default\" />";
+$ec->link .= "<link rel=\"stylesheet\" type=\"text/css\" media=\"screen\" href=\"css/dropdown_menu.css\" title=\"Default\" />";
 
-// This lets us upgrade JQuery versions without having to update HTML
-$glob = glob("js/jquery*min.js");
-
-$ec->script[] = $glob[0]; // Jquery must come first
+$ec->script[] = "js/jquery.js";
 $ec->script[] = "js/functions.js";
+$ec->script[] = "js/jquery.dropdownPlain.js";
 
 if (isset($_GET['check'])) {
 	$html = $ec->check_files();
@@ -65,10 +68,24 @@ if ($total_upload_size > 0) {
 	}
 }
 
-$show     = var_set($_GET['show']);
-$action   = var_set($_GET['action']);
-$filename = var_set($_GET['filename']);
-$PHP_SELF = var_set($_SERVER['PHP_SELF']);
+$show     = $_GET['show']        ?? null;
+$action   = $_GET['action']      ?? null;
+$filename = $_GET['filename']    ?? null;
+$PHP_SELF = $_SERVER['PHP_SELF'] ?? null;
+
+if (!empty($_GET['show64'])) {
+	$file      = base64_decode($_GET['show64']);
+	$file_path = $ec->full_dir . "/" . $file;
+	$basename = dirname(__FILE__);
+	$full     = realpath($basename . "/" . $file_path);
+
+	if (is_readable($full)) {
+		$mime = mime_content_type($file_path);
+		header("Content-Type: $mime");
+		readfile($full);
+		exit;
+	}
+}
 
 // Check to see if they're removing/adding the info tag
 if ($action == "add_tag") {
@@ -81,13 +98,17 @@ if ($action == "add_tag") {
 	$ec->resample($ec->full_dir . "/" .$filename,85);
 	#$show = $filename;
 	$show = "gallery";
+} elseif ($action == "resize") {
+	$ec->resize($ec->full_dir . "/" .$filename);
+	$show = "gallery";
 } elseif ($action) {
 	$ec->error("Unknown action '$action'");
 }
 
 // Show the gallery
 if ($show == "gallery") {
-	$ec->html($ec->show_gallery());
+	$filter = $_GET['filter'] ?? "";
+	$ec->html($ec->show_gallery(1,$filter));
 // Show only one image
 } elseif ($show && $ec->get_file_info($show)) {
 	$body = $ec->show_image($show);
@@ -99,7 +120,7 @@ if ($show == "gallery") {
 // If there is no $url show the default options
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-$img_info = "";
+$img_info = [];
 if ($url) {
 
 	// This code checks for tar.gz and extracts them, and adds the files to the process queue
@@ -132,10 +153,7 @@ if (!$img_info) {
 	$PHP_SELF  = $_SERVER['PHP_SELF'];
 	$output   .= "<h2>Easy Capture $ec->version</h2>";
 
-	if (isset($_SERVER["HTTPS"])) { $http = "https://"; }
-	else { $http = "http://"; }
-
-	$js_location = $http . $_SERVER['SERVER_NAME'] . dirname($_SERVER['SCRIPT_NAME']) . "/images.js.php";
+	$js_location = "//" . $_SERVER['SERVER_NAME'] . dirname($_SERVER['SCRIPT_NAME']) . "/images.js.php";
 
 	$output .= "<div style=\"margin-bottom: 15px; \"><a href=\"javascript:void(z=document.body.appendChild(document.createElement('script')));void(z.language='javascript');void(z.type='text/javascript');void(z.src='$js_location');\">EasyCapture</a> (Bookmarklet)</div>\n";
 
@@ -201,5 +219,23 @@ if (!$img_info) {
 	}
 	$ec->html($html);
 
+	exit;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////
+
+function handle_ajax() {
+	global $ec;
+
+	$filter = $_GET['filter'] ?? "";
+
+	$ret = [
+		'msg'  => "AJAX",
+		'html' => $ec->show_gallery(0,$filter),
+	];
+
+	$json = json_encode($ret);
+	header('Content-type: application/json');
+	print $json;
 	exit;
 }

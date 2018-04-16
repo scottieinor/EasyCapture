@@ -1,0 +1,260 @@
+.gallery_wrapper {
+	display: grid;
+	grid-template-columns: repeat(8, 1fr);
+	grid-gap: 10px;
+}
+
+.image {
+	margin      : auto;
+	text-align  : center;
+	font-size   : 0.7em;
+	font-family : sans-serif;
+	border      : 0px solid;
+}
+
+.image_link {
+	margin-bottom: 1em;
+}
+
+div.image_link {
+	word-wrap: break-word;
+}
+
+h2 { margin: 10px 0px 10px 0px; }
+
+.gallery_header {
+	font-size: 1.5em;
+	text-align: center;
+	margin: 0px;
+	border: 0px solid;
+}
+
+body {
+	font-family: sans-serif;
+	margin: 0px;
+}
+
+.warning {
+	font-size: 0.8em;
+	color: red;
+	text-align: center;
+}
+
+.config_warning {
+	background-color: #FFC280;
+	padding: 4px;
+	border-radius: 5px;
+	border: 1px solid black;
+	margin: 5px;
+	text-align: center;
+}
+
+.small_text {
+	font-size: 0.75em;
+	font-weight: bold;
+	font-style: italic;
+}
+
+.medium_header {
+	font-size: 1.2em;
+	font-weight: bold;
+	text-align: center;
+}
+
+.large_header {
+	font-size: 2.0em;
+	font-weight: bold;
+	text-align: center;
+	margin-bottom: 0px;
+	border: 0px solid red;
+}
+
+.back_to_menu {
+}
+
+.file_size {
+	font-size: 0.8em;
+	margin-bottom: 4px;
+	font-weight: bold;
+}
+
+.max_file_size {
+	font-size: 0.6em;
+	font-weight: bold;
+}
+
+.login_text {
+	color: #1e7200;
+	font-size: 0.6em;
+	font-weight: bold;
+}
+
+.login_panel {
+	border-bottom: 1px solid black;
+	margin-left: 0px;
+	padding: 2px;
+	font-size: 0.7em;
+	background-color: #fffee8;
+}
+
+.main_body { margin: 0 5px 0 5px; }
+
+#login_user, #login_pass, #login_button {
+	border: 1px solid black;
+	font-size: 0.8em;
+}
+
+.gallery_footer {
+	padding-top           : 3px;
+	padding-bottom        : 5px;
+	border-top            : 1px solid #444;
+	font-size             : 0.8em;
+	background-color      : #fcf0bb;
+	position              : fixed;
+	bottom                : 0;
+	width                 : 100%;
+	display               : grid;
+	grid-template-columns : repeat(3, 1fr);
+}
+
+.footer_left {
+	float            : left;
+	text-align       : left;
+	padding-left     : 5px;
+	/*background-color : yellow;*/
+}
+
+.footer_right {
+	float            : left;
+	text-align       : right;
+	padding-right    : 5px;
+	/*background-color : red;*/
+}
+
+.footer_middle {
+	float      : left;
+	text-align : center;
+}
+
+.login_form {
+	display: inline;
+	border: 0px solid black;
+}
+
+.clear {
+	clear: both;
+}
+
+.keyword_selected {
+	font-weight: bold;
+	background-color: #ECF8E0;
+}
+
+.url_wrapper {
+	border: 1px solid gray;
+	padding: 5px;
+	border-radius: 6px;
+	text-align: center;
+}
+
+.url_input {
+	width: 95%;
+	border: 0px;
+	font-size: 1.2em;
+	text-align: center;
+}
+
+.tab_text {
+	margin-left   : 8px;
+	border-top    : 1px solid gray;
+	border-right  : 1px solid gray;
+	border-left   : 1px solid gray;
+	border-radius : 3px;
+	display       : inline-block;
+	padding       : 2px 2px 0 2px;
+}
+
+.image_wrapper {
+}
+
+.image_wrapper img {
+	border: 1px solid #444;
+}
+
+.image_footer {
+	margin-bottom: 15px;
+}
+
+.js_selected {
+	display          : block;
+	background-color : yellow;
+}
+
+.js_selected > img {
+	opacity: 0.5;
+}
+
+.js_selected::after {
+	content  : url('accept.png');
+	position : absolute;
+	top      : 10px;
+	left     : 10px;
+	opacity  : 1;
+}
+
+.filter_bar {
+	width : 100%;
+}
+
+.filter_input {
+	border    : 1px solid #666;
+	font-size : 0.8em;
+	width     : 100%;
+}
+
+.action_menu {
+	text-align: left;
+	min-width : 12em;
+}
+
+.sub_heading {
+	font-size     : 0.7em;
+	text-align    : center;
+	margin-bottom : 1em;
+}
+
+/* ========================================================================== */
+/* MEDIA QUERIES                                                              */
+/* ========================================================================== */
+
+/* This is for medium width devices - medium - high width desktops */
+@media (min-width: 1401px) and (max-width: 1800px) {
+	.gallery_wrapper {
+		display: grid;
+		grid-template-columns: repeat(6, 1fr);
+	}
+}
+
+/* This is for medium width devices - medium width desktops */
+@media (min-width: 1026px) and (max-width: 1400px) {
+	.gallery_wrapper {
+		display: grid;
+		grid-template-columns: repeat(4, 1fr);
+	}
+}
+
+/* This is for medium width devices - tablets */
+@media (min-width: 641px) and (max-width: 1025px) {
+	.gallery_wrapper {
+		display: grid;
+		grid-template-columns: repeat(3, 1fr);
+	}
+}
+
+/* This is for small width devices - phones */
+@media (min-width: 0px) and (max-width: 640px) {
+	.gallery_wrapper {
+		display: grid;
+		grid-template-columns: repeat(2, 1fr);
+	}
+}

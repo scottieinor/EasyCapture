@@ -1,34 +1,29 @@
-<?PHP
-
-function var_set(&$value, $default = null) {
-	if (isset($value)) {
-		return $value;
-	} else {
-		return $default;
-	}
-}
+<?php
 
 class ec_page {
 
-	//  function __construct() {
-	function ec_page() {
-		$this->version = "0.6.0";
-		$this->auth_delete = 1;
-		$this->auth_rename = 1;
+	function __construct() {
+		$this->version      = "0.6.6";
+		$this->auth_delete  = 1;
+		$this->auth_rename  = 1;
 		$this->auth_capture = 0;
-		$this->debug = 1;
-
-		$this->footer = "";
+		$this->debug        = 1;
+		$this->footer       = "";
 
 		umask(0133);
 
-		$this->image_extension = array("gif"=>1,"jpg"=>1,"png"=>1,"jpeg"=>1);
-		session_start();
+		$this->image_extension = array(
+			"gif"  => 1,
+			"jpg"  => 1,
+			"png"  => 1,
+			"jpeg" => 1,
+		);
 
+		session_start();
 	}
 
 	function html($html) {
-		$content = join("",file('html-template.html'));
+		$content = file_get_contents('html-template.html');
 
 		if (!$this->valid_admin_login(0)) {
 			$login_bar = $this->login_bar();
@@ -104,7 +99,7 @@ class ec_page {
 		exit;
 	}
 
-	 function get_files($offset = 0, $limit = 30, $filter = "") {
+	function get_files($offset = 0, $limit = 30, $filter = "") {
 		if ($this->debug) { print "get_files: offset=$offset limit=$limit filter=$filter<br />\n"; }
 
 		$offset         = intval($offset);
@@ -157,7 +152,9 @@ class ec_page {
 			$for_sorting["$mtime-$file"] = $file;
 		}
 
-		if (!$for_sorting) { $this->error("No files found to show!"); }
+		if (!$for_sorting) {
+			$for_sorting = [];
+		}
 
 		if (isset($_GET['random'])) {
 			$i = array_rand($for_sorting,$limit);
@@ -194,18 +191,15 @@ class ec_page {
 		return $ret;
 	}
 
-	function show_gallery() {
+	function show_gallery($include_header = 1, $filter = "") {
 		$full_html_dir  = $this->full_dir;
 		$thumb_html_dir = $this->thumb_dir;
 		$start          = microtime(1);
 
-		$offset = intval(var_set($_GET['offset']));
-		$limit  = var_set($_GET['limit']);
-		$filter = var_set($_GET['filter']);
+		$offset = $_GET['offset'] ?? 0;
+		$limit  = $_GET['limit']  ?? 24;
 
-		$limit || $limit = 30;
-
-		if (var_set($_GET['delete'])) {
+		if (!empty($_GET['delete'])) {
 			$this->delete_file($_GET['delete']);
 		} elseif (isset($_GET['old_name']) && isset($_GET['new_name'])) {
 			$this->rename_file($_GET['old_name'],$_GET['new_name']);
@@ -235,52 +229,74 @@ class ec_page {
 			$total = sizeof($info); // number of files in the dir
 
 			$url   = $_SERVER['PHP_SELF'];
-			$stats = "$total files (<a href=\"$url?show=gallery&amp;random=true\">Random</a>) - {$size} megs - ";
+
+			$stats     = "$total files (<a href=\"$url?show=gallery&amp;random=true\">Random</a>) - {$size} megs - ";
+			$stat_line = "<div class=\"sub_heading\">$stats(<a href=\"index.php\">Back to Menu</a>)</div>\n\n";
 		}
 
-		$version = $this->version;
-		$out  = "<h2 class=\"gallery_header\">Easy Capture Version $version</h2>\n\n";
-		$out .= "<div class=\"back_to_menu\">$stats(<a href=\"index.php\">Back to Menu</a>)</div>\n\n";
+		$out = "";
+
+		if ($include_header) {
+			$version = $this->version;
+			$out .= "<h2 class=\"gallery_header\">Easy Capture Version $version</h2>\n\n";
+			$out .= $stat_line;
+		}
 
 		$files_to_show = $this->get_files($offset,$limit,$filter);
-		if (!$files_to_show) { $this->error("No files to show"); }
+		if (!$files_to_show) {
+			$files_to_show = [];
+		}
 
-		// This just gets a hash with the name=>mtime
-
-		#print_r($full);
 		$PHP_SELF = $_SERVER['PHP_SELF'];
 
-		$out .= "<form method=\"get\" action=\"$PHP_SELF\" style=\"text-align: center; border: 0px solid; margin-bottom: 10px; display: none;\" id=\"form\">
-		<!--
-		-->
-		<input type=\"text\" size=\"50\" name=\"old_name_text\" value=\"old_name.jpg\" id=\"old_name_text\" disabled=\"disabled\" />
-		<input type=\"hidden\" size=\"30\" name=\"old_name\" value=\"old_name.jpg\" id=\"old_name\" />
-		rename to
-		<input type=\"text\" size=\"50\" name=\"new_name\" value=\"new_name.jpg\" id=\"new_name\" />
-		<input type=\"hidden\" size=\"30\" name=\"show\" value=\"gallery\" />
-		<input type=\"submit\" id=\"rename_button\" value=\"Rename\" onclick=\"javascript: return final_submit();\" />
-		<span id=\"placeholder\"></span>
-	</form>\n\n";
+		if ($include_header) {
+			$out .= "<form method=\"get\" action=\"$PHP_SELF\" style=\"text-align: center; border: 0px solid; margin-bottom: 10px; display: none;\" id=\"form\">
+				<!--
+				-->
+				<input type=\"text\" size=\"50\" name=\"old_name_text\" value=\"old_name.jpg\" id=\"old_name_text\" disabled=\"disabled\" />
+				<input type=\"hidden\" size=\"30\" name=\"old_name\" value=\"old_name.jpg\" id=\"old_name\" />
+				rename to
+				<input type=\"text\" size=\"50\" name=\"new_name\" value=\"new_name.jpg\" id=\"new_name\" />
+				<input type=\"hidden\" size=\"30\" name=\"show\" value=\"gallery\" />
+				<input type=\"submit\" id=\"rename_button\" value=\"Rename\" onclick=\"javascript: return final_submit();\" />
+				<span id=\"placeholder\"></span>
+				</form>\n\n";
+		}
 
-		#print join("<br />",$full) . "<br />;
+		if ($include_header) {
+			$out .= "<div class=\"gallery_wrapper\">\n";
+		}
 
 		// This outputs what's in the $full array
 		$shown_images = 0;
+
 		foreach(array_keys($files_to_show) as $filename) {
 			$footer = "<div class=\"image_footer\">";
 			$footer .= "<div class=\"image_actions\">";
 
+			$b64_filename = base64_encode($filename);
+
 			$footer .= "\t<div class=\"image_link\"><a href=\"$PHP_SELF?show=$filename\"><b>$filename</b></a></div>\n";
+			$footer .= "\t<ul class=\"dropdown action_menu\">\n";
+			$footer .= "\t<li class=\"li_action_menu\">&#9660; Actions\n";
+			$footer .= "\t<ul>\n";
+
+			$footer .= "\t\t<li title=\"Create a link that obscures the file name\"><span class=\"b64_image_link\"><a href=\"$PHP_SELF?show64=$b64_filename\">&#128269; Show Masked</a></span></li>\n";
+			if ($this->authorized("rename")) {
+				$footer .= "\t\t<li title=\"Change the name of the file\"><a href=\"$PHP_SELF?show=gallery\" onclick=\"javascript: return rename_file('$filename',''); \">&#x21b7; Rename</a></li>\n";
+				$footer .= "\t\t<li title=\"Resave the image to shrink file size\"><a href=\"$PHP_SELF?action=resample&filename=$filename\">&#x269d; Resample</a></li>\n";
+				$footer .= "\t\t<li title=\"Shrink large images to a more usable size\"><a href=\"$PHP_SELF?action=resize&filename=$filename\">&#x21e9; Resize</a></li>\n";
+			}
 
 			if ($this->authorized("delete")) {
-				$footer .= $this->get_delete_link($filename);
+				$footer .= "\t" . $this->get_delete_link($filename);
 			}
-			if ($this->authorized("rename")) {
-				$footer .= "\n\t| <a href=\"$PHP_SELF?show=gallery\" onclick=\"javascript: return rename_file('$filename',''); \">Rename</a>";
-				$footer .= " | <a href=\"$PHP_SELF?action=resample&filename=$filename\">Resample</a>";
-			}
-			$footer .= "</div>";
-			$footer .= "</div>";
+
+			$footer .= "\t</ul>\n";
+			$footer .= "\t</li>\n";
+			$footer .= "\t</ul>\n";
+			$footer .= "</div>"; // Closes image_footer
+			$footer .= "</div>"; // Closes image_actions
 
 			//print_r($files_to_show);
 			//print "$filename<br />";
@@ -314,7 +330,8 @@ class ec_page {
 
 				#$footer .= "\n\t| <a href=\"$PHP_SELF?show=gallery\" onclick=\"javascript: return rename_file('$filename',''); \">Rename</a>";
 
-				$out .= "<div class=\"image\">\n\t<a href=\"$link_path\"><img src=\"$path\" style=\"border: 1px solid green;\" alt=\"$filename\" /></a>\n\t<br />\n$footer\n</div>\n\n";
+				$out .= "<div class=\"image image_wrapper\">\n\t<a class=\"clickable\" href=\"$link_path\"><img src=\"$path\" alt=\"$filename\" /></a>\n\t$footer\n</div>\n\n";
+				//$out .= "<div class=\"image\">\n\t<a class=\"clickable\" href=\"$link_path\"><img src=\"$path\" style=\"border: 1px solid green;\" alt=\"$filename\" /></a>\n\t$footer\n</div>\n\n";
 			// No thumbnail
 			} else {
 				$path = $full_html_dir . "/" . $filename;
@@ -324,19 +341,23 @@ class ec_page {
 
 			$shown_images++;
 		}
+
+		if ($include_header) {
+			$out .= "</div>\n";
+		}
 		//print sprintf("%.3f seconds<br />",microtime(1) - $start);
 
 		// Only show the more if the page is full (i.e. there are more images)
 		if ($shown_images >= $limit) {
-			$new_offset = $offset + $limit;
+			$new_offset = $offset + $limit + 1;
 			$older_link = "$PHP_SELF?show=gallery&amp;offset=$new_offset";
 			// If there's a filter put it in the older link
 			if (!empty($filter)) {
 				$older_link .= '&amp;filter=' . $filter;
 			}
-			$older_html = "<a href=\"$older_link\">Older</a>\n";
+			$older_html = "<a href=\"$older_link\">&#8592; Older</a>\n";
 		} else {
-			$older_html = "Older\n";
+			$older_html = "&#8592; Older\n";
 		}
 
 		// Setup the new offset link
@@ -348,26 +369,32 @@ class ec_page {
 				$newer_link .= '&amp;filter=' . $filter;
 			}
 			if ($new_offset < 0) { $new_offset = 0; }
-			$newer_html = "<a href=\"$newer_link\">Newer</a>";
+			$newer_html = "<a href=\"$newer_link\">Newer &#8594;</a>";
 		} else {
-			$newer_html = "Newer";
+			$newer_html = "Newer &#8594;";
 		}
 
 		$PHP_SELF = $_SERVER['PHP_SELF'];
 
-		$filter_html = "<b>Filter:</b> <form method=\"get\" action=\"$PHP_SELF\" style=\"display: inline;\"><input type=\"input\" class=\"footer_input\" name=\"filter\" /><input type=\"hidden\" name=\"show\" value=\"gallery\" /></form>";
+		$middle = $stat_line;
+		$middle = $this->get_filter_bar_html();
 
 		$this->footer .= "<div class=\"gallery_footer\">
-			<div class=\"footer_right\">$older_html</div>
-			<div class=\"footer_filter\">$filter_html</div>
-			<div class=\"footer_left\">$newer_html</div>
-			<div class=\"clear\"></div>
+			<div class=\"footer_left\">$older_html</div>
+			<div class=\"footer_middle\">$middle</div>
+			<div class=\"footer_right\">$newer_html</div>
 		</div>\n";
 
 		return $out;
 	}
 
-	 function get_file_info($filename) {
+	function get_filter_bar_html() {
+		$ret = "<div class=\"filter_bar\"><form method=\"get\" action=\"$PHP_SELF\"><input type=\"input\" placeholder=\"File name filter...\" class=\"filter_input\" id=\"filter\" name=\"filter\" /><input type=\"hidden\" name=\"show\" value=\"gallery\" /></form></div>";
+
+		return $ret;
+	}
+
+	function get_file_info($filename) {
 
 		if (is_array($filename)) {
 			if ($this->debug) { print "Image info for an Array!?! Return 0<br />\n\n"; }
@@ -482,12 +509,12 @@ class ec_page {
 		return $ret;
 	}
 
-	 function show_image($file_list,$show_all_link = 1) {
+	function show_image($file_list,$show_all_link = 1) {
 		if (!$file_list) { $this->error("No files sent to show_image"); }
 
 		if (!is_array($file_list)) {
 			$filename    = $file_list;
-			$file_list   = "";
+			$file_list   = [];
 			$file_list[] = $filename;
 		}
 
@@ -513,7 +540,7 @@ class ec_page {
 
 			$html_path       = $server_name . $img_info['full_html_path'];
 			$filename        = basename($html_path);
-			$thumb_html_path = var_set($img_info['thumb_html_path']);
+			$thumb_html_path = $img_info['thumb_html_path'] ?? null;
 			$filename        = $img_info['filename'];
 			$u_filename      = urlencode($img_info['filename']);
 
@@ -595,8 +622,8 @@ class ec_page {
 
 		// If it's an image name that already exists ask for overwrite
 		$info    = $this->get_file_info($filename);
-		$confirm = var_set($_POST['confirm']);
-		$action  = var_set($_GET['action']);
+		$confirm = $_POST['confirm'] ?? null;
+		$action  = $_GET['action']   ?? null;
 
 		// If it's an action (add/remove info tag) auto confirm
 		if ($action) { $confirm = 1; }
@@ -632,7 +659,8 @@ class ec_page {
 
 		if ($this->debug) { print "Filename for the thumbnail: <b>$thumb_filename</b><br />\n"; }
 
-		$file_contents = @join("",file($url));
+		//$file_contents = @join("",file($url));
+		$file_contents = file_get_contents($url);
 		if (!$file_contents) { $this->error("Could not download that file '$url'"); }
 
 		$filesize = strlen($file_contents);
@@ -691,7 +719,7 @@ class ec_page {
 		return $ret;
 	}
 
-	 function delete_file($filename) {
+	function delete_file($filename) {
 		if (!$this->authorized('delete')) {
 			$PHP_SELF = $_SERVER['PHP_SELF'];
 			$this->error("You are not allowed to delete images<br />Please <a href=\"$PHP_SELF?login=1\">login</a> first");
@@ -1007,9 +1035,9 @@ class ec_page {
 			#imagefilledrectangle($new_img,0,$new_h-$text_height,$new_w,$new_h,$black);
 			imagefilledrectangle($new_img,0,$new_h,$new_w,$new_h + $text_height,$black);
 
-			$font_file = "./emblem.ttf";
+			$font_file = __DIR__ . "/emblem.ttf";
 			$font_size = 9;
-			$padding = 3;
+			$padding   = 3;
 
 			// Images is too narrow for an info tag
 			if ($new_w <= 40) {
@@ -1221,8 +1249,8 @@ class ec_page {
 	}
 
 	function valid_admin_login($error_out = 1) {
-		$un  = var_set($_SESSION['username']);
-		$pwd = var_set($_SESSION['password']);
+		$un  = $_SESSION['username'] ?? null;
+		$pwd = $_SESSION['password'] ?? null;
 
 		static $pert;
 
@@ -1289,7 +1317,7 @@ class ec_page {
 		$PHP_SELF = $_SERVER['PHP_SELF'];
 
 		$u_filename = urlencode($filename);
-		$ret = "\t<a href=\"$PHP_SELF?show=gallery&amp;delete=$u_filename\" onclick=\"javascript: return confirm('Really delete $filename?'); \">$text</a> ";
+		$ret = "\t<li class=\"remove_menu\" title=\"Delete the file\"><a href=\"$PHP_SELF?show=gallery&amp;delete=$u_filename\" onclick=\"javascript: return confirm('Really delete $filename?'); \">&#x2717; $text</a></li>\n";
 
 		return $ret;
 	}
@@ -1298,6 +1326,85 @@ class ec_page {
 		$filesize = sprintf("%.1f",$bytes / 1024) . "k";
 
 		return $filesize;
+	}
+
+	private function image_scale($str,$target_width = 3000,$target_height = 3000) {
+		$size  = getimagesizefromstring($str);
+		$image = imagecreatefromstring($data);
+
+		$width  = $size[0];
+		$height = $size[1];
+
+		$ratio = $width / $height;
+		if ($height > $width) {
+			$new_height = 1080;
+			$new_width  = intval($new_height * $ratio);
+		} else {
+			$new_width  = 1920;
+			$new_height = intval($new_width / $ratio);
+		}
+
+		if ($new_height > $height || $new_width > $width) {
+			$this->error("Upsizing an image is not a good idea");
+		}
+
+		//printf("%dx%d (%f) => %dx%d (%f)",$width,$height,$width/$height,$new_width,$new_height,$new_width/$new_height); exit;
+
+		// Resize the image to the the new size
+		$image = imagescale($image,$new_width,$new_height);
+
+		return $image;
+	}
+
+	function resize($file) {
+		// Get the actual file
+		$data  = file_get_contents($file);
+		$image = imagecreatefromstring($data);
+
+		$size   = getimagesizefromstring($data);
+		$width  = $size[0];
+		$height = $size[1];
+
+		$ratio = $width / $height;
+		if ($height > $width) {
+			//$new_height = 1080;
+			$new_height = 3000;
+			$new_width  = intval($new_height * $ratio);
+		} else {
+			//$new_width  = 1920;
+			$new_width  = 3000;
+			$new_height = intval($new_width / $ratio);
+		}
+
+		if ($new_height > $height || $new_width > $width) {
+			$this->error("Upsizing an image is not a good idea");
+		}
+
+		//printf("%dx%d (%f) => %dx%d (%f)",$width,$height,$width/$height,$new_width,$new_height,$new_width/$new_height); exit;
+
+		// Resize the image to the the new size
+		$image = imagescale($image,$new_width,$new_height);
+
+		// Create the new filename
+		$parts = pathinfo($file);
+		$out_file = $this->full_dir . "/" . $parts['filename'] . "-resized.jpg";
+
+		// Save the newly created jpeg
+		$ok = imageJpeg($image,$out_file,$this->jpeg_quality);
+		if (!$ok) {
+			$this->error("Error resizing image");
+		}
+		$bytes = filesize($out_file);
+
+		// Make the thumbnail
+		$thumb = $this->create_thumbnail($image,$this->human_filesize($bytes));
+		$thumb_path = $this->thumb_dir . "/" . $parts['filename'] . "-resized.jpg";
+
+		if ($thumb) {
+			imagejpeg($thumb,$thumb_path,$this->jpeg_quality);
+		}
+
+		return $bytes;
 	}
 
 	function resample($file,$quality = 85) {
@@ -1354,6 +1461,14 @@ class ec_page {
 		$this->admin_username = "";
 		$this->admin_password = "";
 	}
-}
 
-?>
+	public function is_ajax_request() {
+		// This is the JQuery way
+		if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && ($_SERVER['HTTP_X_REQUESTED_WITH'] == "XMLHttpRequest")) {
+			return true;
+		} else {
+			return false;
+		}
+	}
+
+} // End of class

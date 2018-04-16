@@ -3,6 +3,19 @@
 var rename_words = new Array();
 
 $(document).ready(function() {
+	//init_tag_select();
+	init_tabs();
+	init_rename();
+	init_filter();
+});
+
+function init_tag_select() {
+	$(".gallery_header").click(function() {
+		init_tag_select();
+	});
+}
+
+function init_rename() {
 	if (rename_words.length > 0) {
 		var html = new Array();
 
@@ -22,10 +35,63 @@ $(document).ready(function() {
 			var foo = keyword_click($(this));
 		});
 	}
+}
 
-	init_tabs();
+function init_tag_select() {
+	$("a.clickable").click(function(e) {
+		e.preventDefault(); // Don't actually propagate the click
 
-});
+		var img = $(this).find("img");
+		var wrapper = $(".image_wrapper",$(this));
+
+		// If it's checked, then un-check it
+		if (wrapper.hasClass("js_selected")) {
+			wrapper.removeClass("js_selected");
+		} else {
+			var w = img.width();
+			var h = img.height();
+			wrapper.css("width",w);
+			wrapper.css("height",h);
+
+			wrapper.addClass("js_selected");
+		}
+
+		console.log(get_selected_files());
+	});
+
+	return true;
+}
+
+function get_selected_files() {
+	var ret = [];
+	$(".js_selected").each(function(index,e) {
+		var mimg = $("img",e);
+		var file = mimg.attr("src");
+		file = basename(file);
+
+		ret.push(file);
+	});
+
+	return ret;
+}
+
+// basename from http://phpjs.org/functions/basename/
+function basename(path, suffix) {
+	var b = path;
+	var lastChar = b.charAt(b.length - 1);
+
+	if (lastChar === '/' || lastChar === '\\') {
+		b = b.slice(0, -1);
+	}
+
+	b = b.replace(/^.*[\/\\]/g, '');
+
+	if (typeof suffix === 'string' && b.substr(b.length - suffix.length) == suffix) {
+		b = b.substr(0, b.length - suffix.length);
+	}
+
+	return b;
+}
 
 function init_tabs() {
 	$(".tab_text").click(function() {
@@ -96,9 +162,6 @@ function rename_file(old_file,new_file) {
 }
 
 function final_submit() {
-	return true;
-	document.getElementById('old_name').disabled = false;
-
 	return true;
 }
 
@@ -268,3 +331,31 @@ function sprintf ( ) {
 
     return format.replace(regex, doFormat);
 }
+
+function init_filter() {
+	$("#filter").on("keyup",function() {
+		delay(function() {
+			var fval = $("#filter").val();
+
+			var opts = {
+				data    : { action: "gallery_filter", filter: fval },
+				url     : "index.php",
+				success : function(e) {
+					var my_html = e.html;
+					$(".gallery_wrapper").html(my_html);
+				},
+			};
+
+			$.ajax(opts);
+		}, 400);
+	});
+}
+
+// Also could use TypeWatch: https://github.com/dennyferra/TypeWatch
+var delay = (function(){
+	var timer = 0;
+	return function(callback, ms){
+		clearTimeout (timer);
+		timer = setTimeout(callback, ms);
+	};
+})();
